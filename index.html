@@ -733,12 +733,13 @@
         </table>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 mb-2">
-        <button type="button" onclick="addAngRow()" class="btn btn-success text-xs" id="btnAddRow">
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <button type="button" onclick="addAngRow()" class="btn btn-primary text-xs py-1.5 px-3.5 shadow-xs" id="btnAddRow">
           <i class="fas fa-user-plus"></i> Tambah Anggota
         </button>
-        <span class="text-xs text-gray-500 italic ml-1">
-          <i class="fas fa-info-circle text-blue-500 mr-1"></i>Pilih tombol <i class="fas fa-trash-alt text-red-500 mx-0.5"></i> pada kolom Aksi untuk menghapus baris anggota tertentu
+        <span class="text-xs text-slate-500 flex items-center gap-1.5">
+          <i class="fas fa-info-circle text-blue-500"></i>
+          <span>Klik ikon tempat sampah pada baris untuk menghapus anggota tertentu.</span>
         </span>
       </div>
     </div>
@@ -1189,9 +1190,11 @@ function addAngRow(data = {}) {
     return `<select data-field="${field}">${optionsHtml}</select>`;
   };
 
-  const delBtn = `<td class="text-center">
-    <button type="button" onclick="removeAngRow('${uid}')" class="btn btn-danger text-xs px-2 py-1" title="Hapus baris ini">
-      <i class="fas fa-trash-alt"></i>
+  const delBtn = `<td class="text-center p-1">
+    <button type="button" onclick="removeAngRow('${uid}')"
+            class="w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 active:bg-red-100 flex items-center justify-center transition-colors mx-auto"
+            title="Hapus baris ini">
+      <i class="fas fa-trash-alt text-xs"></i>
     </button>
   </td>`;
 
@@ -1240,16 +1243,42 @@ function addAngRow(data = {}) {
   document.getElementById('angTbl1').appendChild(tr1);
   document.getElementById('angTbl2').appendChild(tr2);
 
+  // Subtle highlight effect on new row insertion
+  if (!data.nama_baptis && !data.nama_lahir) {
+    tr1.style.transition = 'background-color 0.4s ease';
+    tr2.style.transition = 'background-color 0.4s ease';
+    tr1.style.backgroundColor = '#ecfdf5';
+    tr2.style.backgroundColor = '#ecfdf5';
+    setTimeout(() => {
+      tr1.style.backgroundColor = '';
+      tr2.style.backgroundColor = '';
+    }, 400);
+  }
+
   renumberAngRows();
 }
 
 function removeAngRow(uid) {
   const r1 = document.getElementById('r1_' + uid);
   const r2 = document.getElementById('r2_' + uid);
-  if (r1) r1.remove();
-  if (r2) r2.remove();
-  renumberAngRows();
-  showToast('Baris anggota berhasil dihapus.', 'info');
+  if (!r1 && !r2) return;
+
+  // Visual polish: highlight deletion and smooth fade
+  [r1, r2].forEach(r => {
+    if (r) {
+      r.style.transition = 'all 0.18s ease-out';
+      r.style.backgroundColor = '#fee2e2';
+      r.style.opacity = '0';
+      r.style.transform = 'scale(0.98)';
+    }
+  });
+
+  setTimeout(() => {
+    if (r1) r1.remove();
+    if (r2) r2.remove();
+    renumberAngRows();
+    showToast('Baris anggota berhasil dihapus.', 'info');
+  }, 180);
 }
 
 function renumberAngRows() {
