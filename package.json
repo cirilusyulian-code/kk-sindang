@@ -1,0 +1,15 @@
+{
+  "name": "kk-katolik-gas",
+  "version": "1.0.0",
+  "description": "Aplikasi Kartu Keluarga Katolik Stasi St. Fransiskus Asisi Sindang",
+  "scripts": {
+    "login": "clasp login",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "deploy": "clasp deploy --description \"Deploy via Antigravity\"",
+    "open": "clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
