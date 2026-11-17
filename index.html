@@ -706,6 +706,7 @@
               <th class="w-28">Tgl Komuni</th>
               <th class="min-w-20">Tmp Krisma</th>
               <th class="w-28">Tgl Krisma</th>
+              <th class="w-12 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="angTbl1"></tbody>
@@ -725,19 +726,20 @@
               <th class="min-w-28">Dipermandikan Oleh</th>
               <th class="min-w-28">Nama Ayah</th>
               <th class="min-w-28">Nama Ibu</th>
+              <th class="w-12 text-center">Aksi</th>
             </tr>
           </thead>
           <tbody id="angTbl2"></tbody>
         </table>
       </div>
 
-      <div class="flex gap-2 mb-2">
-        <button onclick="addAngRow()" class="btn btn-success text-xs" id="btnAddRow">
+      <div class="flex flex-wrap items-center gap-2 mb-2">
+        <button type="button" onclick="addAngRow()" class="btn btn-success text-xs" id="btnAddRow">
           <i class="fas fa-user-plus"></i> Tambah Anggota
         </button>
-        <button onclick="removeLastRow()" class="btn btn-danger text-xs">
-          <i class="fas fa-user-minus"></i> Hapus Baris Terakhir
-        </button>
+        <span class="text-xs text-gray-500 italic ml-1">
+          <i class="fas fa-info-circle text-blue-500 mr-1"></i>Pilih tombol <i class="fas fa-trash-alt text-red-500 mx-0.5"></i> pada kolom Aksi untuk menghapus baris anggota tertentu
+        </span>
       </div>
     </div>
 
@@ -1157,81 +1159,117 @@ function fillForm(kk) {
   onLingkunganChange();
   setTimeout(() => { document.getElementById('fKBG').value = kk.kbg || ''; }, 50);
 
-  // Anggota
-  (kk.anggota || []).forEach(() => addAngRow());
-  (kk.anggota || []).forEach((ang, i) => fillAngRow(i, ang));
+  // Isi baris anggota
+  const anggotaList = kk.anggota || [];
+  if (anggotaList.length > 0) {
+    anggotaList.forEach(ang => addAngRow(ang));
+  } else {
+    addAngRow(); // 1 baris kosong awal
+  }
 }
 
-function fillAngRow(idx, ang) {
-  const set = (id, val) => { const el = document.getElementById(id+idx); if(el) el.value = val || ''; };
-  set('angNB',      ang.nama_baptis);
-  set('angNL',      ang.nama_lahir);
-  set('angJK',      ang.jk);
-  set('angHub',     ang.hub_keluarga);
-  set('angLT',      ang.lahir_tempat);
-  set('angLTgl',    ang.lahir_tanggal ? ang.lahir_tanggal.substring(0,10) : '');
-  set('angBT',      ang.baptis_tempat);
-  set('angBTgl',    ang.baptis_tanggal ? ang.baptis_tanggal.substring(0,10) : '');
-  set('angKT',      ang.komuni_pertama_tempat);
-  set('angKTgl',    ang.komuni_pertama_tanggal ? ang.komuni_pertama_tanggal.substring(0,10) : '');
-  set('angKrT',     ang.krisma_tempat);
-  set('angKrTgl',   ang.krisma_tanggal ? ang.krisma_tanggal.substring(0,10) : '');
-  set('angPend',    ang.pendidikan_terakhir);
-  set('angKerja',   ang.pekerjaan);
-  set('angGol',     ang.gol_darah);
-  set('angNoBaptis',ang.nomor_buku_baptis);
-  set('angDiperBy', ang.dipermandikan_oleh);
-  set('angAyah',    ang.nama_ayah);
-  set('angIbu',     ang.nama_ibu);
+function addAngRow(data = {}) {
+  const currentCount = document.querySelectorAll('#angTbl1 tr').length;
+  if (currentCount >= 8) {
+    showToast('Maksimal 8 anggota keluarga per kartu.', 'error');
+    return;
+  }
+  const uid = 'ang_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+  const inp = (field, ph, val='', type='text') =>
+    `<input data-field="${field}" type="${type}" placeholder="${ph}" value="${esc(val)}">`;
+
+  const sel = (field, opts, selectedVal='') => {
+    const optionsHtml = opts.map(o => {
+      const val = typeof o === 'string' ? o : o.val;
+      const text = typeof o === 'string' ? o : o.text;
+      const isSelected = String(val) === String(selectedVal) ? 'selected' : '';
+      return `<option value="${esc(val)}" ${isSelected}>${esc(text)}</option>`;
+    }).join('');
+    return `<select data-field="${field}">${optionsHtml}</select>`;
+  };
+
+  const delBtn = `<td class="text-center">
+    <button type="button" onclick="removeAngRow('${uid}')" class="btn btn-danger text-xs px-2 py-1" title="Hapus baris ini">
+      <i class="fas fa-trash-alt"></i>
+    </button>
+  </td>`;
+
+  const jkOpts = [{val:'', text:'-'}, {val:'L', text:'L'}, {val:'P', text:'P'}];
+  const hubOpts = [{val:'', text:'-'}, 'KK', 'Istri', 'Anak', 'Menantu', 'Cucu', 'Orang Tua', 'Lainnya'];
+  const pendOpts = [{val:'', text:'-'}, 'Belum Sekolah', 'SD', 'SMP', 'SMA', 'D3', 'S1', 'S2', 'S3', '-'];
+  const golOpts = [{val:'', text:'-'}, 'A', 'B', 'AB', 'O'];
+
+  const fd = v => (v && v.length >= 10) ? v.substring(0, 10) : (v || '');
+
+  const tr1 = document.createElement('tr');
+  tr1.id = 'r1_' + uid;
+  tr1.dataset.uid = uid;
+  tr1.innerHTML = `
+    <td class="row-no text-center text-gray-500 font-bold">${currentCount + 1}</td>
+    <td>${inp('nama_baptis', 'Nama Baptis', data.nama_baptis || '')}</td>
+    <td>${inp('nama_lahir', 'Nama Lahir', data.nama_lahir || '')}</td>
+    <td>${sel('jk', jkOpts, data.jk || '')}</td>
+    <td>${sel('hub_keluarga', hubOpts, data.hub_keluarga || '')}</td>
+    <td>${inp('lahir_tempat', 'Tempat', data.lahir_tempat || '')}</td>
+    <td>${inp('lahir_tanggal', '', fd(data.lahir_tanggal), 'date')}</td>
+    <td>${inp('baptis_tempat', 'Tempat', data.baptis_tempat || '')}</td>
+    <td>${inp('baptis_tanggal', '', fd(data.baptis_tanggal), 'date')}</td>
+    <td>${inp('komuni_pertama_tempat', 'Tempat', data.komuni_pertama_tempat || '')}</td>
+    <td>${inp('komuni_pertama_tanggal', '', fd(data.komuni_pertama_tanggal), 'date')}</td>
+    <td>${inp('krisma_tempat', 'Tempat', data.krisma_tempat || '')}</td>
+    <td>${inp('krisma_tanggal', '', fd(data.krisma_tanggal), 'date')}</td>
+    ${delBtn}
+  `;
+
+  const tr2 = document.createElement('tr');
+  tr2.id = 'r2_' + uid;
+  tr2.dataset.uid = uid;
+  tr2.innerHTML = `
+    <td class="row-no text-center text-gray-500 font-bold">${currentCount + 1}</td>
+    <td>${sel('pendidikan_terakhir', pendOpts, data.pendidikan_terakhir || '')}</td>
+    <td>${inp('pekerjaan', 'Pekerjaan', data.pekerjaan || '')}</td>
+    <td>${sel('gol_darah', golOpts, data.gol_darah || '')}</td>
+    <td>${inp('nomor_buku_baptis', 'No. buku', data.nomor_buku_baptis || '')}</td>
+    <td>${inp('dipermandikan_oleh', 'Nama pastor', data.dipermandikan_oleh || '')}</td>
+    <td>${inp('nama_ayah', 'Nama ayah', data.nama_ayah || '')}</td>
+    <td>${inp('nama_ibu', 'Nama ibu', data.nama_ibu || '')}</td>
+    ${delBtn}
+  `;
+
+  document.getElementById('angTbl1').appendChild(tr1);
+  document.getElementById('angTbl2').appendChild(tr2);
+
+  renumberAngRows();
 }
 
-function addAngRow() {
-  if (angCount >= 8) { showToast('Maksimal 8 anggota keluarga.', 'error'); return; }
-  const i = angCount++;
-  const inp  = (id, ph, type='text', w='') => `<input id="${id}${i}" type="${type}" placeholder="${ph}" ${w?'style="width:'+w+'"':''}>`;
-  const sel  = (id, opts) => `<select id="${id}${i}">${opts}</select>`;
-  const noEl = `<td class="text-center text-gray-500 font-bold">${i+1}</td>`;
-
-  document.getElementById('angTbl1').innerHTML +=
-    `<tr id="angRow${i}">
-      ${noEl}
-      <td>${inp('angNB','Nama Baptis')}</td>
-      <td>${inp('angNL','Nama Lahir')}</td>
-      <td>${sel('angJK','<option value="">-</option><option value="L">L</option><option value="P">P</option>')}</td>
-      <td>${sel('angHub','<option value="">-</option><option>KK</option><option>Istri</option><option>Anak</option><option>Menantu</option><option>Cucu</option><option>Orang Tua</option><option>Lainnya</option>')}</td>
-      <td>${inp('angLT','Tempat')}</td>
-      <td>${inp('angLTgl','','date')}</td>
-      <td>${inp('angBT','Tempat')}</td>
-      <td>${inp('angBTgl','','date')}</td>
-      <td>${inp('angKT','Tempat')}</td>
-      <td>${inp('angKTgl','','date')}</td>
-      <td>${inp('angKrT','Tempat')}</td>
-      <td>${inp('angKrTgl','','date')}</td>
-    </tr>`;
-
-  document.getElementById('angTbl2').innerHTML +=
-    `<tr id="angRow2_${i}">
-      ${noEl}
-      <td>${sel('angPend','<option value="">-</option><option>Belum Sekolah</option><option>SD</option><option>SMP</option><option>SMA</option><option>D3</option><option>S1</option><option>S2</option><option>S3</option><option>-</option>')}</td>
-      <td>${inp('angKerja','Pekerjaan')}</td>
-      <td>${sel('angGol','<option value="">-</option><option>A</option><option>B</option><option>AB</option><option>O</option>')}</td>
-      <td>${inp('angNoBaptis','No. buku')}</td>
-      <td>${inp('angDiperBy','Nama pastor')}</td>
-      <td>${inp('angAyah','Nama ayah')}</td>
-      <td>${inp('angIbu','Nama ibu')}</td>
-    </tr>`;
-
-  document.getElementById('btnAddRow').style.display = angCount >= 8 ? 'none' : '';
-}
-
-function removeLastRow() {
-  if (angCount === 0) return;
-  angCount--;
-  const r1 = document.getElementById('angRow'+angCount);
-  const r2 = document.getElementById('angRow2_'+angCount);
+function removeAngRow(uid) {
+  const r1 = document.getElementById('r1_' + uid);
+  const r2 = document.getElementById('r2_' + uid);
   if (r1) r1.remove();
   if (r2) r2.remove();
-  document.getElementById('btnAddRow').style.display = '';
+  renumberAngRows();
+  showToast('Baris anggota berhasil dihapus.', 'info');
+}
+
+function renumberAngRows() {
+  const rows1 = document.querySelectorAll('#angTbl1 tr');
+  const rows2 = document.querySelectorAll('#angTbl2 tr');
+  const count = rows1.length;
+
+  rows1.forEach((r, idx) => {
+    const noCell = r.querySelector('.row-no');
+    if (noCell) noCell.textContent = idx + 1;
+  });
+  rows2.forEach((r, idx) => {
+    const noCell = r.querySelector('.row-no');
+    if (noCell) noCell.textContent = idx + 1;
+  });
+
+  const btnAdd = document.getElementById('btnAddRow');
+  if (btnAdd) {
+    btnAdd.style.display = count >= 8 ? 'none' : '';
+  }
 }
 
 function resetForm() {
@@ -1245,8 +1283,8 @@ function resetForm() {
   document.getElementById('fKBG').innerHTML    = '<option value="">— Pilih KBG —</option>';
   document.getElementById('angTbl1').innerHTML = '';
   document.getElementById('angTbl2').innerHTML = '';
-  document.getElementById('btnAddRow').style.display = '';
-  angCount = 0;
+  const btnAdd = document.getElementById('btnAddRow');
+  if (btnAdd) btnAdd.style.display = '';
 }
 
 function populateFormDropdowns() {
@@ -1266,32 +1304,48 @@ function onLingkunganChange() {
 
 function getAngData() {
   const anggota = [];
-  for (let i = 0; i < angCount; i++) {
-    const g = id => { const el = document.getElementById(id+i); return el ? el.value.trim() : ''; };
-    const nb = g('angNB'), nl = g('angNL');
-    if (!nb && !nl) continue; // skip baris kosong
+  const rows1 = document.querySelectorAll('#angTbl1 tr');
+  const rows2 = document.querySelectorAll('#angTbl2 tr');
+
+  rows1.forEach((r1, i) => {
+    const r2 = rows2[i];
+    if (!r2) return;
+
+    const v1 = name => {
+      const el = r1.querySelector(`[data-field="${name}"]`);
+      return el ? el.value.trim() : '';
+    };
+    const v2 = name => {
+      const el = r2.querySelector(`[data-field="${name}"]`);
+      return el ? el.value.trim() : '';
+    };
+
+    const nb = v1('nama_baptis');
+    const nl = v1('nama_lahir');
+    if (!nb && !nl) return; // skip baris kosong
+
     anggota.push({
       nama_baptis            : nb,
       nama_lahir             : nl,
-      jk                     : g('angJK'),
-      hub_keluarga           : g('angHub'),
-      lahir_tempat           : g('angLT'),
-      lahir_tanggal          : g('angLTgl'),
-      baptis_tempat          : g('angBT'),
-      baptis_tanggal         : g('angBTgl'),
-      komuni_pertama_tempat  : g('angKT'),
-      komuni_pertama_tanggal : g('angKTgl'),
-      krisma_tempat          : g('angKrT'),
-      krisma_tanggal         : g('angKrTgl'),
-      pendidikan_terakhir    : g('angPend'),
-      pekerjaan              : g('angKerja'),
-      gol_darah              : g('angGol'),
-      nomor_buku_baptis      : g('angNoBaptis'),
-      dipermandikan_oleh     : g('angDiperBy'),
-      nama_ayah              : g('angAyah'),
-      nama_ibu               : g('angIbu')
+      jk                     : v1('jk'),
+      hub_keluarga           : v1('hub_keluarga'),
+      lahir_tempat           : v1('lahir_tempat'),
+      lahir_tanggal          : v1('lahir_tanggal'),
+      baptis_tempat          : v1('baptis_tempat'),
+      baptis_tanggal         : v1('baptis_tanggal'),
+      komuni_pertama_tempat  : v1('komuni_pertama_tempat'),
+      komuni_pertama_tanggal : v1('komuni_pertama_tanggal'),
+      krisma_tempat          : v1('krisma_tempat'),
+      krisma_tanggal         : v1('krisma_tanggal'),
+      pendidikan_terakhir    : v2('pendidikan_terakhir'),
+      pekerjaan              : v2('pekerjaan'),
+      gol_darah              : v2('gol_darah'),
+      nomor_buku_baptis      : v2('nomor_buku_baptis'),
+      dipermandikan_oleh     : v2('dipermandikan_oleh'),
+      nama_ayah              : v2('nama_ayah'),
+      nama_ibu               : v2('nama_ibu')
     });
-  }
+  });
   return anggota;
 }
 
