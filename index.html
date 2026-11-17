@@ -9,12 +9,62 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
   /* ── GLOBAL ───────────────────────────────────────────── */
-  body { font-family: 'Segoe UI', Arial, sans-serif; background:#f1f5f9; }
-  .sidebar { width:220px; min-height:100vh; background:linear-gradient(180deg,#1e3a5f 0%,#2563eb 100%); }
-  .nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; color:#bfdbfe;
-              border-radius:8px; margin:2px 8px; cursor:pointer; transition:.2s; font-size:.92rem; }
-  .nav-item:hover, .nav-item.active { background:rgba(255,255,255,.18); color:#fff; }
-  .nav-item i { width:18px; text-align:center; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f1f5f9;
+  }
+  
+  /* Responsive & Collapsible Sidebar */
+  .sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0f2744 0%, #1e3a5f 45%, #2563eb 100%);
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (min-width: 768px) {
+    body.sidebar-collapsed .sidebar {
+      margin-left: -250px;
+    }
+  }
+
+
+  @media (max-width: 767px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 50;
+      min-height: 100%;
+      height: 100%;
+      transform: translateX(-100%);
+      box-shadow: 4px 0 25px rgba(0,0,0,0.35);
+    }
+    .sidebar.mobile-open {
+      transform: translateX(0);
+    }
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: #bfdbfe;
+    border-radius: 10px;
+    margin: 3px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.92rem;
+    font-weight: 500;
+  }
+  .nav-item:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+  .nav-item.active { background: rgba(255, 255, 255, 0.22); color: #ffffff; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .nav-item i { width: 20px; text-align: center; font-size: 1rem; }
+  
+  #toast.info { background: #1d4ed8; }
+  
   .card { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
   .btn-primary   { background:#2563eb; color:#fff; }
   .btn-primary:hover { background:#1d4ed8; }
@@ -112,49 +162,107 @@
   @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
-<body class="flex">
+<body class="min-h-screen flex flex-col md:flex-row antialiased text-slate-800">
+
+<!-- ════════════════════════════════════════════════
+     MOBILE BACKDROP OVERLAY
+════════════════════════════════════════════════ -->
+<div id="sidebarBackdrop" onclick="toggleSidebar(false)"
+     class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden md:hidden transition-opacity"></div>
 
 <!-- ════════════════════════════════════════════════
      SIDEBAR
 ════════════════════════════════════════════════ -->
-<aside class="sidebar flex flex-col flex-shrink-0">
-  <div class="p-5 border-b border-blue-700">
-    <div class="flex items-center gap-3 mb-1">
-      <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center">
-        <i class="fas fa-cross text-blue-800 text-lg"></i>
+<aside id="mainSidebar" class="sidebar flex flex-col flex-shrink-0 select-none">
+  <!-- Brand / Header -->
+  <div class="p-4 sm:p-5 border-b border-blue-600/40 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-inner flex-shrink-0">
+        <i class="fas fa-cross text-amber-300 text-lg"></i>
       </div>
       <div>
-        <div class="text-white font-bold text-sm leading-tight">KK Katolik</div>
-        <div class="text-blue-200 text-xs leading-tight">Stasi St. Fransiskus Asisi</div>
+        <div class="text-white font-bold text-sm leading-tight tracking-wide">KK Katolik</div>
+        <div class="text-blue-200 text-xs leading-tight">Stasi St. Fransiskus</div>
       </div>
     </div>
+    <!-- Mobile close button -->
+    <button onclick="toggleSidebar(false)"
+            class="md:hidden text-blue-200 hover:text-white p-2 rounded-lg hover:bg-white/10 transition"
+            title="Tutup Menu">
+      <i class="fas fa-times text-lg"></i>
+    </button>
   </div>
 
-  <nav class="flex-1 py-4">
+  <!-- Navigation items -->
+  <nav class="flex-1 py-4 space-y-1 overflow-y-auto">
     <div onclick="showPage('dashboard')" id="nav-dashboard" class="nav-item active">
-      <i class="fas fa-tachometer-alt"></i> Dashboard
+      <i class="fas fa-tachometer-alt"></i>
+      <span>Dashboard</span>
     </div>
     <div onclick="showPage('families')" id="nav-families" class="nav-item">
-      <i class="fas fa-users"></i> Data Keluarga
+      <i class="fas fa-users"></i>
+      <span>Data Keluarga</span>
     </div>
     <div onclick="showPage('referensi')" id="nav-referensi" class="nav-item">
-      <i class="fas fa-list"></i> Referensi
+      <i class="fas fa-layer-group"></i>
+      <span>Referensi</span>
     </div>
   </nav>
 
-  <div class="p-4 border-t border-blue-700">
-    <div class="text-blue-300 text-xs text-center">
-      <i class="fas fa-database mr-1"></i>
-      <a id="sheetLink" href="#" target="_blank" class="hover:text-white underline">Lihat Spreadsheet</a>
-    </div>
-    <div class="text-blue-400 text-xs text-center mt-1">v1.0 — 2026</div>
+  <!-- Sidebar Footer -->
+  <div class="p-4 border-t border-blue-600/40 bg-black/10">
+    <a id="sheetLink" href="#" target="_blank"
+       class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-blue-100 transition shadow-xs">
+      <i class="fas fa-database text-emerald-400"></i>
+      <span>Buka Spreadsheet</span>
+      <i class="fas fa-external-link-alt text-[10px] ml-1 opacity-70"></i>
+    </a>
+    <div class="text-blue-300 text-[11px] text-center mt-2.5 opacity-80">Paroki St. Stephanus &bull; 2026</div>
   </div>
 </aside>
 
 <!-- ════════════════════════════════════════════════
-     MAIN CONTENT
+     MAIN WRAPPER (TOPBAR + CONTENT)
 ════════════════════════════════════════════════ -->
-<main class="flex-1 overflow-auto">
+<div class="flex-1 flex flex-col min-w-0 min-h-screen">
+
+  <!-- ── TOP NAVIGATION BAR ───────────────────────────── -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between shadow-xs">
+    <div class="flex items-center gap-2.5 sm:gap-4">
+      <!-- Toggle button (Hamburger) -->
+      <button id="btnToggleSidebar" onclick="toggleSidebar()"
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              title="Buka / Tutup Menu">
+        <i class="fas fa-bars text-base"></i>
+      </button>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="topbarTitle" class="text-sm sm:text-base font-bold text-slate-800 leading-tight">
+            KK Katolik Sindang
+          </h1>
+          <span id="topbarPageBadge" class="hidden sm:inline-block badge badge-blue text-[11px]">Dashboard</span>
+        </div>
+        <p class="text-[11px] sm:text-xs text-slate-500 leading-tight hidden xs:block">
+          Stasi St. Fransiskus Asisi &bull; Paroki St. Stephanus Martir Curup
+        </p>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="flex items-center gap-2">
+      <button onclick="showFormModal()" class="btn btn-primary text-xs sm:text-sm py-1.5 px-3 sm:px-4 shadow-xs">
+        <i class="fas fa-plus"></i>
+        <span class="hidden sm:inline">Tambah KK</span>
+      </button>
+      <button onclick="refreshCurrentPage()" class="p-2 sm:px-3 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Segarkan Data">
+        <i class="fas fa-sync-alt text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MAIN CONTENT AREA ────────────────────────────── -->
+  <main class="flex-1 overflow-x-hidden">
 
   <!-- ── DASHBOARD ──────────────────────────────────────── -->
   <section id="page-dashboard" class="p-6">
@@ -222,13 +330,13 @@
         <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
           <i class="fas fa-chart-bar text-blue-500"></i> Distribusi Usia Umat
         </h3>
-        <canvas id="chartUsia" height="200"></canvas>
+        <div class="relative w-full" style="height:220px"><canvas id="chartUsia"></canvas></div>
       </div>
       <div class="card p-5">
         <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
           <i class="fas fa-chart-pie text-green-500"></i> Umat per Lingkungan
         </h3>
-        <canvas id="chartLingkungan" height="200"></canvas>
+        <div class="relative w-full" style="height:220px"><canvas id="chartLingkungan"></canvas></div>
       </div>
     </div>
 
@@ -269,22 +377,24 @@
     </div>
 
     <!-- Filter & Search -->
-    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-center">
-      <div class="flex-1 min-w-48">
-        <input id="searchKK" type="text" placeholder="🔍 Cari nama KK..."
+    <div class="card p-3 sm:p-4 mb-4 flex flex-col md:flex-row gap-2.5 sm:gap-3 items-stretch md:items-center">
+      <div class="flex-1">
+        <input id="searchKK" type="text" placeholder="🔍 Cari nama kepala keluarga / alamat..."
                oninput="filterTable()"
-               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
       </div>
-      <select id="filterLing" onchange="filterTable()"
-              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-        <option value="">Semua Lingkungan</option>
-      </select>
-      <select id="filterKBG" onchange="filterTable()"
-              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-        <option value="">Semua KBG</option>
-      </select>
-      <span class="text-sm text-gray-500">
-        Menampilkan <b id="countShown">0</b> dari <b id="countTotal">0</b> KK
+      <div class="flex flex-wrap sm:flex-nowrap gap-2 items-center">
+        <select id="filterLing" onchange="filterTable()"
+                class="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
+          <option value="">Semua Lingkungan</option>
+        </select>
+        <select id="filterKBG" onchange="filterTable()"
+                class="flex-1 sm:flex-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
+          <option value="">Semua KBG</option>
+        </select>
+      </div>
+      <span class="text-xs sm:text-sm text-gray-500 self-end md:self-center whitespace-nowrap">
+        Menampilkan <b id="countShown" class="text-blue-600">0</b> dari <b id="countTotal">0</b> KK
       </span>
     </div>
 
@@ -352,23 +462,23 @@
     </div>
   </section>
 
-</main><!-- end main -->
+</main></div><!-- end main wrapper -->
 
 <!-- ════════════════════════════════════════════════
      MODAL: FORM INPUT / EDIT KK
 ════════════════════════════════════════════════ -->
 <div id="modalForm" class="modal-overlay hidden">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h2 id="modalTitle" class="text-lg font-bold flex items-center gap-2">
+  <div class="modal-box max-h-[92vh] flex flex-col">
+    <div class="modal-header flex-shrink-0">
+      <h2 id="modalTitle" class="text-base sm:text-lg font-bold flex items-center gap-2">
         <i class="fas fa-id-card"></i> Tambah Data KK
       </h2>
-      <button onclick="closeModal('modalForm')" class="text-white hover:text-red-200 text-xl">
+      <button onclick="closeModal('modalForm')" class="text-white/80 hover:text-white p-1 rounded-lg text-xl transition" title="Tutup">
         <i class="fas fa-times"></i>
       </button>
     </div>
 
-    <div class="p-6 overflow-y-auto max-h-[80vh]">
+    <div class="p-4 sm:p-6 overflow-y-auto flex-1">
       <input type="hidden" id="fId">
 
       <!-- BAGIAN HEADER KK -->
@@ -516,11 +626,11 @@
     </div>
 
     <!-- Footer Modal -->
-    <div class="p-4 bg-gray-50 rounded-b-2xl flex justify-end gap-3 border-t">
+    <div class="p-3 sm:p-4 bg-gray-50 flex items-center justify-end gap-2.5 border-t border-slate-200 flex-shrink-0">
       <button onclick="closeModal('modalForm')" class="btn btn-secondary">
         <i class="fas fa-times"></i> Batal
       </button>
-      <button onclick="submitForm()" id="btnSave" class="btn btn-primary px-6">
+      <button onclick="submitForm()" id="btnSave" class="btn btn-primary px-6 shadow-xs">
         <i class="fas fa-save"></i> Simpan
       </button>
     </div>
@@ -568,17 +678,19 @@
      PRINT PREVIEW MODAL
 ════════════════════════════════════════════════ -->
 <div id="modalPrint" class="modal-overlay hidden">
-  <div class="modal-box max-w-5xl">
-    <div class="modal-header" style="background:linear-gradient(135deg,#064e3b,#059669)">
-      <h2 class="text-lg font-bold"><i class="fas fa-print"></i> Preview Kartu Keluarga Katolik</h2>
-      <button onclick="closeModal('modalPrint')" class="text-white hover:text-red-200 text-xl">
+  <div class="modal-box max-w-5xl flex flex-col max-h-[92vh]">
+    <div class="modal-header flex-shrink-0" style="background:linear-gradient(135deg,#064e3b,#059669)">
+      <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+        <i class="fas fa-print"></i> Preview Kartu Keluarga Katolik
+      </h2>
+      <button onclick="closeModal('modalPrint')" class="text-white/80 hover:text-white p-1 rounded-lg text-xl transition" title="Tutup">
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <div class="p-4 bg-gray-100 overflow-x-auto">
-      <div id="previewContent" style="transform-origin:top left;transform:scale(0.9);min-width:277mm;"></div>
+    <div class="p-3 sm:p-4 bg-slate-200 overflow-x-auto flex-1">
+      <div id="previewContent" style="transform-origin:top left;transform:scale(0.85);min-width:277mm;background:#fff;padding:12px;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15)"></div>
     </div>
-    <div class="p-4 bg-gray-50 rounded-b-2xl flex justify-end gap-3 border-t">
+    <div class="p-3 sm:p-4 bg-gray-50 flex justify-end gap-3 border-t flex-shrink-0">
       <button onclick="closeModal('modalPrint')" class="btn btn-secondary">
         <i class="fas fa-times"></i> Tutup
       </button>
@@ -599,12 +711,52 @@
 ════════════════════════════════════════════════ -->
 <script>
 // ── STATE ──────────────────────────────────────────────────
-let allKeluarga  = [];
-let refData      = { lingkungan: [], kbg: {} };
-let deleteTarget = null;
-let angCount     = 0;
-let chartUsia    = null;
-let chartLing    = null;
+let allKeluarga         = [];
+let refData             = { lingkungan: [], kbg: {} };
+let deleteTarget        = null;
+let angCount            = 0;
+let chartUsia           = null;
+let chartLing           = null;
+let isSidebarCollapsed  = false;
+
+// ── SIDEBAR TOGGLE & RESPONSIVE ────────────────────────────
+function toggleSidebar(forceState) {
+  const isMobile = window.innerWidth < 768;
+  const sidebar = document.getElementById('mainSidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+
+  if (isMobile) {
+    const shouldOpen = typeof forceState === 'boolean'
+      ? forceState
+      : !sidebar.classList.contains('mobile-open');
+
+    if (shouldOpen) {
+      sidebar.classList.add('mobile-open');
+      backdrop.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    } else {
+      sidebar.classList.remove('mobile-open');
+      backdrop.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+  } else {
+    if (typeof forceState === 'boolean') {
+      isSidebarCollapsed = !forceState;
+    } else {
+      isSidebarCollapsed = !isSidebarCollapsed;
+    }
+    document.body.classList.toggle('sidebar-collapsed', isSidebarCollapsed);
+  }
+}
+
+// Window resize handler: auto cleanup state when switching breakpoints
+window.addEventListener('resize', function() {
+  if (window.innerWidth >= 768) {
+    document.getElementById('sidebarBackdrop').classList.add('hidden');
+    document.getElementById('mainSidebar').classList.remove('mobile-open');
+    document.body.classList.remove('overflow-hidden');
+  }
+});
 
 // Helper aman parse response dari google.script.run (bisa JSON string atau objek)
 function safeParse(res, fallback) {
@@ -645,13 +797,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── NAVIGATION ──────────────────────────────────────────────
 function showPage(page) {
+  // Tutup drawer pada mobile jika user mengklik menu
+  if (window.innerWidth < 768) {
+    toggleSidebar(false);
+  }
+
   ['dashboard','families','referensi'].forEach(p => {
     document.getElementById('page-'+p).classList.toggle('hidden', p !== page);
     document.getElementById('nav-'+p).classList.toggle('active', p === page);
   });
+
+  const titles = {
+    dashboard: 'Dashboard',
+    families: 'Data Keluarga',
+    referensi: 'Referensi'
+  };
+  const badge = document.getElementById('topbarPageBadge');
+  if (badge) badge.textContent = titles[page] || page;
+
   if (page === 'families')   loadKeluarga();
   if (page === 'dashboard')  loadDashboard();
   if (page === 'referensi')  loadReferensiPage();
+}
+
+function refreshCurrentPage() {
+  const pages = ['dashboard', 'families', 'referensi'];
+  for (const p of pages) {
+    if (!document.getElementById('page-' + p).classList.contains('hidden')) {
+      showPage(p);
+      showToast('Memperbarui data ' + p + '...', 'info');
+      break;
+    }
+  }
 }
 
 // ── DASHBOARD ───────────────────────────────────────────────
@@ -686,7 +863,12 @@ function renderDashboard(stats) {
   chartUsia = new Chart(document.getElementById('chartUsia'), {
     type: 'bar',
     data: { labels: usiaLabels, datasets: [{ label: 'Jumlah', data: usiaData, backgroundColor: usiaColors, borderRadius: 6 }] },
-    options: { responsive:true, plugins:{ legend:{display:false} }, scales:{ y:{beginAtZero:true,ticks:{stepSize:1}} } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
   });
 
   // Chart lingkungan (donut)
@@ -699,7 +881,16 @@ function renderDashboard(stats) {
   chartLing = new Chart(document.getElementById('chartLingkungan'), {
     type: 'doughnut',
     data: { labels: lingLabels, datasets: [{ data: lingData, backgroundColor: lingColors }] },
-    options: { responsive:true, plugins:{ legend:{position:'right'} } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: window.innerWidth < 640 ? 'bottom' : 'right',
+          labels: { boxWidth: 12, font: { size: 11 } }
+        }
+      }
+    }
   });
 
   // Tabel rekapitulasi
